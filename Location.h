@@ -20,6 +20,7 @@ public:
 
 		bool exists;
 		Location* previous;
+		Route* previousRoute;
 		float lengthFromStart;
 
 		Location();
@@ -48,6 +49,7 @@ Location::Location(){
 	exists = true;
 
 	previous = NULL;
+	previousRoute = NULL;
 }
 
 Location::~Location(){};
@@ -63,6 +65,7 @@ Location::Location(string count, string cap){
 	exists = true;
 
 	previous = NULL;
+	previousRoute = NULL;
 }
 
 Location::Location(string count, string cap, float lt, float lg){
@@ -76,6 +79,7 @@ Location::Location(string count, string cap, float lt, float lg){
 	exists = true;
 
 	previous = NULL;
+	previousRoute = NULL;
 }
 
 int Location::operator== (const Location &rhs) const{
@@ -90,12 +94,14 @@ int Location::operator< (const Location &rhs) const{
 	if(this -> lengthFromStart < rhs.lengthFromStart){
 		return 1;
 	}
+	return 0;
 }
 
 int Location::operator> (const Location &rhs) const{
 	if(this -> lengthFromStart > rhs.lengthFromStart){
 		return 1;
 	}
+	return 0;
 }
 
 class compareLocation{

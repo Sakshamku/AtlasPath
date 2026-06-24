@@ -12,25 +12,70 @@
 
 using namespace std;
 
+static vector<string> splitCsvLine(const string& line){
+	vector<string> fields;
+	string field;
+	bool inQuotes = false;
+
+	for(size_t i = 0; i < line.size(); i++){
+		char c = line[i];
+
+		if(inQuotes){
+			if(c == '"'){
+				if(i + 1 < line.size() && line[i + 1] == '"'){
+					field.push_back('"');
+					i++;
+				}
+				else{
+					inQuotes = false;
+				}
+			}
+			else{
+				field.push_back(c);
+			}
+		}
+		else{
+			if(c == ','){
+				fields.push_back(field);
+				field.clear();
+			}
+			else if(c != '\r'){
+				if(c == '"'){
+					inQuotes = true;
+				}
+				else{
+					field.push_back(c);
+				}
+			}
+		}
+	}
+
+	fields.push_back(field);
+	return fields;
+}
+
 vector<Location*> locationParser(string filename, vector<Route*> routes){
 	fstream locations(filename.c_str());
 
-	string country;
-	string city;
-	string latitude;
-	string longitude;
-
 	vector<Location*> cities;
-	Location* node;
 
-	while(locations.good()){
-		getline(locations, country, ',');
-		getline(locations, city, ',');
-		getline(locations, latitude, ',');
-		getline(locations, longitude);
-		//cout << "Country:" << country << " City:" << city << " Lat:" << latitude << " Lon:" << longitude << endl << endl << endl;
+	string line;
 
-		node = new Location(country, city, atof(latitude.c_str()), atof(longitude.c_str()));
+	while(getline(locations, line)){
+		if(line.size() == 0){
+			continue;
+		}
+
+		vector<string> fields = splitCsvLine(line);
+		if(fields.size() < 4){
+			continue;
+		}
+
+		if(fields[0] == "Country" || fields[0] == "country"){
+			continue;
+		}
+
+		Location* node = new Location(fields[0], fields[1], atof(fields[2].c_str()), atof(fields[3].c_str()));
 
 		vector<Route*>::iterator it = routes.begin();
 
@@ -61,31 +106,40 @@ vector<Route*> routeParser(string filename){
 
 	fstream routes(filename.c_str());
 
-	string originS;
-	string destinationS;
-
-	Location* origin = new Location();
-	Location* destination = new Location();
-
-	string type;
-	string time;
-	string cost;
-	string note;
-
 	vector<Route*> allRoutes;
-	Route* edge;
+	string line;
 
-	while(routes.good()){
-		getline(routes, originS, ',');
-		getline(routes, destinationS, ',');
-		getline(routes, type, ',');
-		getline(routes, time, ',');
-		getline(routes, cost, ',');
-		getline(routes, note);
+	while(getline(routes, line)){
+		if(line.size() == 0){
+			continue;
+		}
 
-		//cout << "Origin: " << originS << " Destination: " << destinationS << "---" << type << " " << time << " " << cost << " " << endl; //debug
+		vector<string> fields = splitCsvLine(line);
+		if(fields.size() < 6){
+			continue;
+		}
 
-		edge = new Route(origin, destination, type, atof(time.c_str()), atof(cost.c_str()), note);
+		if(fields[0] == "Origin" || fields[0] == "origin"){
+			continue;
+		}
+
+		string originS = fields[0];
+		string destinationS = fields[1];
+		string type = fields[2];
+		float time = atof(fields[3].c_str());
+		float cost = atof(fields[4].c_str());
+
+		string lastUpdated = "";
+		string note = fields.back();
+
+		if(fields.size() >= 7){
+			lastUpdated = fields[5];
+			note = fields[6];
+		}
+
+		Location* origin = new Location();
+		Location* destination = new Location();
+		Route* edge = new Route(origin, destination, type, time, cost, lastUpdated, note);
 		edge -> destinationS = destinationS;
 		edge -> originS = originS;
 
@@ -136,9 +190,6 @@ void outputGenerator(string filename, stack<Location*> cities, stack<Route*> rou
 		routes.pop();
 
 		cost = route -> cost;
-		if(route -> transport.compare("plane") == 0){
-			cost =  cost / MULTI;
-		}
 
 		output << "var contentString" << contentStringCount << " = \"" << origin -> capital << ", " << origin -> country << " --> " << destination -> capital << ", " << destination -> country << "(" << route -> transport << " - " << route -> time << " hours - $" << cost << ")\"; var path" << contentStringCount << " = new google.maps.Polyline({ path: [new google.maps.LatLng(" << origin -> lat << ", " << origin -> lon << "), new google.maps.LatLng(" << destination -> lat << ", " << destination -> lon << ")], strokeColor: '#0000FF', strokeOpacity: 1.0, strokeWeight: 2}); path"<< contentStringCount <<".setMap(map); google.maps.event.addListener(path" << contentStringCount << ", 'click', function(event) { alert(contentString" << contentStringCount << ");});\n";
 

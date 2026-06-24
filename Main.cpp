@@ -97,6 +97,11 @@ int main(int argc, char* argv[]){
 
 	graph.Dijkstras(origin,biPreference);
 
+	if(graph.getCity(destination) -> previous == NULL && origin.compare(destination) != 0){
+		cout << "No route found" << endl;
+		return 0;
+	}
+
 	stack<Location*> cityStack = graph.cityStacker(destination);
 	stack<Route*> routeStack = graph.routeStacker(destination, biPreference);
 

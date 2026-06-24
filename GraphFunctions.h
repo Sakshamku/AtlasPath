@@ -1,4 +1,4 @@
-#ifndef GRAPHFUCNTIONS_H
+#ifndef GRAPHFUNCTIONS_H
 #define GRAPHFUNCTIONS_H
 
 #include <string>
@@ -7,6 +7,7 @@
 #include <queue>
 #include <cstdlib>
 #include <stack>
+#include <cmath>
 
 #include "Location.h"
 #include "Route.h"
@@ -117,28 +118,26 @@ float Graph::getWeight(Location* start, Location* end, bool costOrTime){
 void Graph::Dijkstras(string startS, bool costOrTime){
 	
 	Location* start = getCity(startS);
-	float totalDistance = 0;
+
+	for(int i = 0; i < cities.size(); i++){
+		cities[i] -> lengthFromStart = 999999;
+		cities[i] -> exists = true;
+		cities[i] -> previous = NULL;
+		cities[i] -> previousRoute = NULL;
+	}
 
 	start -> lengthFromStart = 0;
 
-	priority_queue<Location*,vector<Location*>,compareLocation> minHeap;
+	while(true){
+		Location* smallest = NULL;
 
-	for(int i = 0; i < cities.size(); i++){
-		minHeap.push(cities[i]);
-	}
-
-	while(!minHeap.empty()){
-		
-		while(!minHeap.empty() && minHeap.top() -> exists == false){
-			minHeap.pop();
+		for(int i = 0; i < cities.size(); i++){
+			if(cities[i] -> exists && (smallest == NULL || cities[i] -> lengthFromStart < smallest -> lengthFromStart)){
+				smallest = cities[i];
+			}
 		}
 
-		Location* smallest;
-
-		if(!minHeap.empty()){
-			smallest = minHeap.top();
-		}
-		else{
+		if(smallest == NULL || smallest -> lengthFromStart == 999999){
 			return;
 		}
 		
@@ -146,31 +145,33 @@ void Graph::Dijkstras(string startS, bool costOrTime){
 		//cout << "Smallest popped: " << smallest -> lengthFromStart << endl;	//debug
 		smallest -> exists = false;
 
-		vector<Location*>* adjacentCities = adjacentLocations(smallest);	
+		for(int i = 0; i < smallest -> routes.size(); i++){
+			Route* route = smallest -> routes[i];
+			Location* adjacent = route -> destination;
 
-		for(int i = 0; i < adjacentCities -> size(); i++){
+			if(adjacent == NULL || adjacent -> exists == false){
+				continue;
+			}
 
-			Location* adjacent = adjacentCities -> at(i);
+			float weight;
+			if(costOrTime){
+				weight = route -> cost;
+			}
+			else{
+				weight = route -> time;
+			}
 
-			float distance = getWeight(smallest, adjacent, costOrTime) + smallest -> lengthFromStart;
-
-			//cout << distance << "	vs	" << adjacent -> lengthFromStart << endl;	//debug
-
+			float distance = weight + smallest -> lengthFromStart;
 
 			if(distance < adjacent -> lengthFromStart){
 
 				adjacent -> lengthFromStart = distance;
 				adjacent -> previous = smallest;
-
-				totalDistance = distance;
+				adjacent -> previousRoute = route;
 
 			}
 
-			make_heap(const_cast<Location**>(&minHeap.top()), const_cast<Location**>(&minHeap.top()) + minHeap.size(), compareLocation());
-
 		}
-
-		delete adjacentCities;
 		
 
 	}
@@ -205,24 +206,40 @@ Route* Graph::getRoute(Location* start, bool costOrTime, float totalDistance){
 	
 	vector<Route*>* routes = adjacentRoutes(start);
 
-	float epsilon = 1e-5;
+	float epsilon = 0.1;
+	float expectedDistance = totalDistance - start -> lengthFromStart;
+	Route* bestRoute = NULL;
+	float bestDifference = 999999;
 
 	for(int i = 0; i < routes -> size(); i++){
+		float currentDifference;
 
 			if(costOrTime == true){
-				if(fabs((totalDistance - routes -> at(i) -> cost) - routes -> at(i) -> origin -> lengthFromStart) > epsilon){
-					return routes -> at(i);
+				currentDifference = fabs(routes -> at(i) -> cost - expectedDistance);
+				if(currentDifference < epsilon){
+					Route* output = routes -> at(i);
+					delete routes;
+					return output;
 				}
 			}
 
 			else if(costOrTime == false){
-				if(fabs((totalDistance - routes -> at(i) -> time) - routes -> at(i) -> origin -> lengthFromStart) > epsilon){
-					return routes -> at(i);
+				currentDifference = fabs(routes -> at(i) -> time - expectedDistance);
+				if(currentDifference < epsilon){
+					Route* output = routes -> at(i);
+					delete routes;
+					return output;
 				}
 			}
+
+		if(currentDifference < bestDifference){
+			bestDifference = currentDifference;
+			bestRoute = routes -> at(i);
+		}
 		
 	}
-	return NULL;
+	delete routes;
+	return bestRoute;
 }
 
 stack<Location*> Graph::cityStacker(string destinationS){
@@ -246,7 +263,7 @@ stack<Route*> Graph::routeStacker(string destinationS, bool costOrTime){
 	float totalDistance = destination -> lengthFromStart;
 
 	while(destination -> previous != NULL){
-		output.push(getRoute(destination -> previous, costOrTime, totalDistance));
+		output.push(destination -> previousRoute);
 		destination = destination -> previous;
 
 		totalDistance = destination -> lengthFromStart;

@@ -8,8 +8,6 @@ using namespace std;
 
 class Location;
 
-const float MULTI = 3;
-
 class Route{
 public:
 		Location* origin;
@@ -21,12 +19,14 @@ public:
 		string transport;
 		float time;
 		float cost;
+		string lastUpdated;
 		string note;
 
 		Route();
 		~Route();
 		Route(Location* org, Location* dest);
 		Route(Location* org, Location* dest, string trans, float tim, float cst, string notee);
+		Route(Location* org, Location* dest, string trans, float tim, float cst, string lastUpd, string notee);
 
 		bool doesConnect(Location* start, Location* end);
 };
@@ -37,6 +37,7 @@ Route::Route(){
 	transport = "";
 	time = 0;
 	cost = 0;
+	lastUpdated = "";
 	note = "";
 };
 
@@ -50,6 +51,7 @@ Route::Route(Location* org, Location* dest){
 	transport = "";
 	time = 0;
 	cost = 0;
+	lastUpdated = "";
 	note = "";
 };
 
@@ -59,11 +61,18 @@ Route::Route(Location* org, Location* dest, string trans, float tim, float cst, 
 	transport = trans;
 	time = tim;
 	cost = cst;
+	lastUpdated = "";
 	note = notee;
+};
 
-	if(trans.compare("plane") == 0){
-		cost =  cst * MULTI;
-	}
+Route::Route(Location* org, Location* dest, string trans, float tim, float cst, string lastUpd, string notee){
+	origin = org;
+	destination = dest;
+	transport = trans;
+	time = tim;
+	cost = cst;
+	lastUpdated = lastUpd;
+	note = notee;
 };
 
 
